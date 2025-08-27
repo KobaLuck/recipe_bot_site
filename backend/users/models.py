@@ -11,6 +11,13 @@ class User(AbstractUser):
         verbose_name="Аватар",
     )
     email = models.EmailField("Почта", unique=True)
+    telegram_id = models.BigIntegerField(
+        "Telegram ID",
+        blank=True,
+        null=True,
+        unique=True,
+        help_text="ID пользователя в Telegram для интеграции с ботом"
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = [

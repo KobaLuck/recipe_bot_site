@@ -1,8 +1,9 @@
+version: '3.8'
+
 volumes:
   pg_data:
   static:
   media:
-
 
 services:
   db:
@@ -10,9 +11,10 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     env_file: .env
+    restart: unless-stopped
 
   backend:
-    image: koba101/foodgram_backend
+    image: koba101/foodgram_backend:latest
     env_file: .env
     depends_on:
       - db
@@ -20,19 +22,43 @@ services:
       - media:/media/
       - static:/backend_static/
       - ./ingredients.json:/app/ingredients.json:ro
+    restart: unless-stopped
 
   frontend:
     env_file: .env
-    image: koba101/foodgram_frontend
+    image: koba101/foodgram_frontend:latest
     command: cp -r /app/build/. /frontend_static/
     volumes:
       - static:/frontend_static/
+    restart: unless-stopped
 
   gateway:
-    image: koba101/foodgram_gateway
+    image: koba101/foodgram_gateway:latest
     env_file: .env
     ports:
-      - 7000:80
+      - 80:80
     volumes:
       - static:/staticfiles/
       - media:/media/
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  bot:
+    build: ./bot
+    container_name: foodgram_bot_prod
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - SITE_API_BASE=http://backend:8000/api/
+      - API_PAGE_SIZE=${API_PAGE_SIZE:-10}
+      - DJANGO_SETTINGS_MODULE=config.settings
+    depends_on:
+      - backend
+    volumes:
+      - ./bot/bot_user_tokens.json:/app/bot_user_tokens.json
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,38 +1,28 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import Subscription, User
+from .models import User, Subscription
 
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = (
-        "email",
-        "username",
-        "first_name",
-        "last_name",
-        "recipes_count",
-        "subscribers_count",
+    list_display = ('username', 'email', 'first_name', 'last_name', 'telegram_id', 'is_staff')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'groups')
+    search_fields = ('username', 'first_name', 'last_name', 'email', 'telegram_id')
+    ordering = ('username',)
+    
+    fieldsets = BaseUserAdmin.fieldsets + (
+        ('Telegram Integration', {'fields': ('telegram_id',)}),
     )
-    search_fields = ("email", "username")
-    list_filter = ("email", "username", "first_name", "last_name")
-
-    @admin.display(description="Рецептов")
-    def recipes_count(self, obj):
-        return obj.recipes.count()
-
-    @admin.display(description="Подписчиков")
-    def subscribers_count(self, obj):
-        return obj.subscribers.count()
+    
+    add_fieldsets = BaseUserAdmin.add_fieldsets + (
+        ('Telegram Integration', {'fields': ('telegram_id',)}),
+    )
 
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ("user", "author")
-    search_fields = (
-        "user__username",
-        "user__email",
-        "author__username",
-        "author__email",
-    )
-    list_filter = ("user", "author")
+    list_display = ('user', 'author', 'created')
+    list_filter = ('created',)
+    search_fields = ('user__username', 'author__username')
+    ordering = ('-created',)

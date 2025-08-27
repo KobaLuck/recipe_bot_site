@@ -36,3 +36,17 @@ services:
     volumes:
       - static:/staticfiles/
       - media:/media/
+
+  bot:
+    build: ./bot
+    container_name: foodgram_bot
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - SITE_API_BASE=http://backend:8000/api/
+      - API_PAGE_SIZE=${API_PAGE_SIZE:-10}
+      - DJANGO_SETTINGS_MODULE=config.settings
+    depends_on:
+      - backend
+    volumes:
+      - ./bot/bot_user_tokens.json:/app/bot_user_tokens.json
