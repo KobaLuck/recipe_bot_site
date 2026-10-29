@@ -30,3 +30,13 @@ docker compose exec backend python manage.py collectstatic --noinput
 ---
 
 [Никита Казанцев](https://github.com/KobaLuck) · [Все публичные проекты](https://github.com/KobaLuck?tab=repositories)
+
+## GitHub Actions
+
+При push и pull request запускаются проверки кода. Автоматического
+развёртывания нет: проект сейчас не размещён на сервере.
+
+Когда появится сервер, настройте секреты Docker Hub и SSH в GitHub,
+откройте **Actions → CI and manual deployment → Run workflow**
+и явно включите **deploy**. Без этой отметки образы не публикуются,
+подключение к серверу и уведомления не выполняются.
