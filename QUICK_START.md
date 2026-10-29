@@ -1,78 +1,25 @@
-# 🚀 Быстрый запуск Foodgram + Telegram Bot
-
-## 📋 Предварительные требования
-
-- Docker и Docker Compose
-- Python 3.9+
-- Telegram Bot Token (получить у [@BotFather](https://t.me/BotFather))
-
-## ⚡ Быстрый старт (5 минут)
-
-### 1. Клонирование и настройка
+# Recipes + Telegram · быстрый запуск
 
 ```bash
-# Клонируйте проект
-git clone <your-repo-url>
-cd foodgram
-
-# Инициализируйте бота
-python init_bot.py
+git clone https://github.com/KobaLuck/recipe_bot_site.git
+cd recipe_bot_site
+cp env.example .env
 ```
 
-### 2. Настройка токена
-
-Отредактируйте `.env` файл:
-```bash
-TELEGRAM_BOT_TOKEN=your_actual_bot_token_here
-```
-
-### 3. Запуск
+Заполните настройки PostgreSQL, Django и `TELEGRAM_BOT_TOKEN` в `.env`.
+Адрес API для бота в Docker задаётся через `SITE_API_BASE` и должен указывать
+на доступный из контейнера backend.
 
 ```bash
-# Запуск всех сервисов
-docker-compose up -d
-
-# Проверка статуса
-docker-compose ps
+docker compose up -d --build
+docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py collectstatic --noinput
+docker compose exec backend python manage.py createsuperuser
 ```
 
-### 4. Проверка
+Откройте `http://localhost:7000`. Добавьте теги и ингредиенты через админку,
+затем отправьте боту `/start`. Для просмотра состояния: `docker compose ps`.
+Для диагностики: `docker compose logs --tail=100 backend bot`.
+Остановить сервисы с сохранением томов: `docker compose down`.
 
-- **Сайт:** http://localhost:7000
-- **API:** http://localhost:8000/api/
-- **Бот:** найдите в Telegram по имени
-
-## 🔧 Основные команды
-
-```bash
-# Запуск всех сервисов
-docker-compose up -d
-
-# Остановка сервисов
-docker-compose down
-
-# Просмотр логов
-docker-compose logs -f
-
-# Перезапуск бота
-docker-compose restart bot
-
-# Статус сервисов
-docker-compose ps
-```
-
-## 🚨 Если что-то не работает
-
-1. **Проверьте токен бота** в `.env`
-2. **Пересоберите образы:** `docker-compose up --build -d`
-3. **Проверьте логи:** `docker-compose logs -f`
-4. **Очистите Docker:** `docker-compose down -v --rmi all && docker-compose up --build -d`
-
-## 📚 Подробная документация
-
-- [Документация бота](bot/README.md)
-- [Основной README](README.md)
-
----
-
-**🎉 Готово!** Теперь у вас есть полностью интегрированный проект Foodgram с Telegram ботом.
+[Основной README](README.md) · [Документация бота](bot/README.md)

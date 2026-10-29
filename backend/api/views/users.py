@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -58,6 +59,7 @@ class UserViewSet(
         detail=True, methods=["post", "delete"], url_path="subscribe",
         permission_classes=[IsAuthenticated]
     )
+    @transaction.atomic
     def subscribe(self, request, pk=None):
         author = get_object_or_404(User, pk=pk)
         if request.method == "POST":

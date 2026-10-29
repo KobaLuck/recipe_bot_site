@@ -22,7 +22,6 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('user', 'author', 'created')
-    list_filter = ('created',)
+    list_display = ('user', 'author')
     search_fields = ('user__username', 'author__username')
-    ordering = ('-created',)
+    ordering = ('-id',)

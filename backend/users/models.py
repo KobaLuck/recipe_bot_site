@@ -39,12 +39,12 @@ class User(AbstractUser):
         ingredient_qs = (
             RecipeIngredient.objects
             .filter(recipe__in_carts__user=self)
-            .annotate(
+            .values(
                 name=models.F("ingredient__name"),
                 measurement_unit=models.F("ingredient__measurement_unit"),
-                total=models.Sum("amount"),
             )
-            .values("name", "measurement_unit", "total")
+            .annotate(total=models.Sum("amount"))
+            .order_by("name", "measurement_unit")
         )
         return list(ingredient_qs)
 

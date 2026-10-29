@@ -60,10 +60,7 @@ if not SITE_API_BASE:
     raise RuntimeError("SITE_API_BASE не задан в окружении")
 
 # placeholder 1x1 transparent png (data-uri)
-PLACEHOLDER_PNG_DATAURI = (
-    "data:image/png;base64,"
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII="
-)
+PLACEHOLDER_PNG_DATAURI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAe0lEQVR4nO3PQQ0AIBDAsPOvDxH8MYAIHg3Jkgno5uz1dcMFDWhBA1rQgBY0oAUNaEEDWtCAFjSgBQ1oQQNa0IAWNKAFDWhBA1rQgBY0oAUNaEEDWtCAFjSgBQ1oQQNa0IAWNKAFDWhBA1rQgBY0oAUNaEEDWtCAFjx2AdXk8ndJ+FMbAAAAAElFTkSuQmCC'
 
 # --------------------------
 # API клиент (aiohttp)
@@ -390,7 +387,13 @@ async def ing_qty_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ING_QTY
     
     ing_id = context.user_data.pop("selected_ing")
-    context.user_data.setdefault("ingredients", []).append({"id": ing_id, "amount": int(txt)})
+    ingredients = context.user_data.setdefault("ingredients", [])
+    for ingredient in ingredients:
+        if ingredient["id"] == ing_id:
+            ingredient["amount"] += int(txt)
+            break
+    else:
+        ingredients.append({"id": ing_id, "amount": int(txt)})
     
     kb = [
         [InlineKeyboardButton("➕ Добавить ещё", callback_data="ing_back_letters")],
@@ -419,6 +422,9 @@ async def ing_confirm_choose_handler(update: Update, context: ContextTypes.DEFAU
         return ING_LETTER
     
     if q.data == "ing_done":
+        if not context.user_data.get("ingredients"):
+            await q.message.reply_text("Добавьте хотя бы один ингредиент.")
+            return ING_LETTER
         return await tags_start(q.message, context)
 
 # Выбор тегов
@@ -655,13 +661,21 @@ def build_conv_handler():
         entry_points=[
             CallbackQueryHandler(start_add_recipe, pattern="^add_recipe$"),
             CommandHandler("add", start_add_recipe),
+            CommandHandler("addrecipe", start_add_recipe),
         ],
         states={
             RECIPE_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, recipe_name)],
             RECIPE_DESC: [MessageHandler(filters.TEXT & ~filters.COMMAND, recipe_desc)],
             COOK_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, recipe_cook_time)],
-            ING_LETTER: [CallbackQueryHandler(ing_letter_handler, pattern="^ing_letter:")],
-            ING_PAGE: [CallbackQueryHandler(ing_page_handler, pattern="^ing_page:")],
+            ING_LETTER: [
+                CallbackQueryHandler(ing_letter_handler, pattern="^ing_letter:"),
+                CallbackQueryHandler(ing_confirm_choose_handler, pattern="^ing_done$"),
+            ],
+            ING_PAGE: [
+                CallbackQueryHandler(ing_page_handler, pattern="^ing_page:"),
+                CallbackQueryHandler(ing_select_handler, pattern="^ing_select:"),
+                CallbackQueryHandler(ing_confirm_choose_handler, pattern="^(ing_back_letters|ing_done)$"),
+            ],
             ING_SELECT: [CallbackQueryHandler(ing_select_handler, pattern="^ing_select:")],
             ING_QTY: [MessageHandler(filters.TEXT & ~filters.COMMAND, ing_qty_handler)],
             ING_CONFIRM_CHOOSE: [CallbackQueryHandler(ing_confirm_choose_handler, pattern="^(ing_back_letters|ing_done)$")],
@@ -732,7 +746,6 @@ def main():
     # Основные команды
     app.add_handler(CommandHandler("help", help_handler))
     app.add_handler(CommandHandler("recipes", recipes_handler))
-    app.add_handler(CommandHandler("addrecipe", start_add_recipe))
     
     # Обработчик отмены
     app.add_handler(CommandHandler("cancel", cancel_handler))
