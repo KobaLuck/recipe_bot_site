@@ -24,8 +24,4 @@ class Migration(migrations.Migration):
             name='subscription',
             unique_together=set(),
         ),
-        migrations.AddConstraint(
-            model_name='subscription',
-            constraint=models.UniqueConstraint(fields=('user', 'author'), name='unique_subscription'),
-        ),
     ]
