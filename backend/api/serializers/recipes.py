@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+from django.db import transaction
 
 from api.serializers.users import UserResponseSerializer, Base64ImageField
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
@@ -87,6 +88,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         fields = ("ingredients", "tags",
                   "image", "cooking_time", "name", "text")
 
+    @transaction.atomic
     def create(self, validated_data):
         ingredients = validated_data.pop("ingredients")
         tags = validated_data.pop("tags")
@@ -110,24 +112,25 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             instance, context=self.context
         ).data
 
+    @transaction.atomic
     def update(self, instance, validated_data):
-        ingredients = validated_data.pop("ingredients")
-        tags = validated_data.pop("tags")
-        RecipeIngredient.objects.filter(recipe=instance).delete()
-        instance.tags.set(tags)
-        RecipeIngredient.objects.bulk_create([
-            RecipeIngredient(
-                recipe=instance,
-                ingredient=ing["id"],
-                amount=ing["amount"],
-            )
-            for ing in ingredients
-        ])
+        ingredients = validated_data.pop("ingredients", None)
+        tags = validated_data.pop("tags", None)
+        if tags is not None:
+            instance.tags.set(tags)
+        if ingredients is not None:
+            RecipeIngredient.objects.filter(recipe=instance).delete()
+            RecipeIngredient.objects.bulk_create([
+                RecipeIngredient(
+                    recipe=instance, ingredient=ing["id"], amount=ing["amount"]
+                )
+                for ing in ingredients
+            ])
         return super().update(instance, validated_data)
 
     def validate(self, data):
         ingredients = data.get("ingredients", [])
-        if not ingredients:
+        if not ingredients and not (self.partial and "ingredients" not in data):
             raise serializers.ValidationError(
                 "Укажите хотя бы один ингредиент."
             )
@@ -139,7 +142,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             )
 
         tags = data.get("tags", [])
-        if not tags:
+        if not tags and not (self.partial and "tags" not in data):
             raise serializers.ValidationError(
                 "У рецепта должен быть хотя бы один тег."
             )

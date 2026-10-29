@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -126,4 +127,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             f"{it['name']} ({it['measurement_unit']}) — {it['total']}"
             for it in request.user.get_shopping_list()
         )
-        return Response("\n".join(lines), content_type="text/plain")
+        response = HttpResponse("\n".join(lines), content_type="text/plain; charset=utf-8")
+        response['Content-Disposition'] = 'attachment; filename="shopping-list.txt"'
+        return response

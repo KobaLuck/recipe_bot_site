@@ -1,4 +1,6 @@
 import base64
+import binascii
+from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
@@ -13,10 +15,13 @@ User = get_user_model()
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith("data:"):
-            header, base64_str = data.split(";base64,")
-            decoded_file = base64.b64decode(base64_str)
+            try:
+                header, base64_str = data.split(";base64,", 1)
+                decoded_file = base64.b64decode(base64_str, validate=True)
+            except (ValueError, binascii.Error):
+                raise serializers.ValidationError("Некорректное изображение Base64.")
             ext = header.split("/")[-1]
-            file_name = f"avatar_{self.context['request'].user.id}.{ext}"
+            file_name = f"{uuid4().hex}.{ext}"
             data = ContentFile(decoded_file, name=file_name)
         return super().to_internal_value(data)
 
@@ -79,7 +84,7 @@ class SubscriptionCreateSerializer(serializers.Serializer):
         queryset=User.objects.all(), source='author'
     )
 
-    def validate_author(self, author):
+    def validate_author_id(self, author):
         user = self.context['request'].user
         if author == user:
             raise serializers.ValidationError("Нельзя подписаться на себя.")
@@ -133,6 +138,9 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             except (TypeError, ValueError):
                 raise serializers.ValidationError(
                     {'recipes_limit': 'Должен быть целым числом.'})
+            if limit < 0:
+                raise serializers.ValidationError(
+                    {'recipes_limit': 'Должен быть неотрицательным числом.'})
             recipes_qs = recipes_qs[:limit]
         return RecipeMinifiedSerializer(
             recipes_qs, many=True, context=self.context).data
